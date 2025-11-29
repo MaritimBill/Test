@@ -1,51 +1,72 @@
 /* kenya-data.js
-   small helper to fetch realistic solar and tariff data.
-   NOTE: Replace with server-side proxies for production (avoid CORS issues on NASA API).
+   Provides realistic synthetic PV & tariff & demand scenarios used by the browser MPC.
+   - PV: sinusoidal daily pattern plus cloud noise and random dips
+   - Tariff: time-of-day bands (lower at night)
+   - Demand: hospital baseline + random peaks
 */
 
 const KenyaData = (function(){
-  // Example: a lightweight wrapper that uses NASA POWER daily API for a given lat/lon.
-  async function fetchNasaPowerDaily(lat= -1.2921, lon=36.8219, start='20220101', end='20221231'){
-    // NOTE: CORS may block direct calls; in dev you can use a small proxy or run locally.
-    const base = 'https://power.larc.nasa.gov/api/temporal/daily/point';
-    const params = `?parameters=ALLSKY_SFC_SW_DWN,ALLSKY_SFC_PAR&community=RE&longitude=${lon}&latitude=${lat}&start=${start}&end=${end}&format=JSON`;
-    const url = base + params;
-    const r = await fetch(url);
-    if(!r.ok) throw new Error('NASA POWER fetch failed: ' + r.status);
-    const json = await r.json();
-    return json;
+  // location/time helpers (assume Kenya local time)
+  function hourOfDay() { return new Date().getHours() + new Date().getMinutes()/60; }
+
+  // PV (kW) capacity assumption
+  const PV_CAPACITY = 100; // kW plant (tune to your system)
+
+  function pvNow() {
+    const h = hourOfDay();
+    // sun from 6 to 18 roughly: use smooth sinusoid
+    const sunrise = 6, sunset = 18;
+    if(h < sunrise || h > sunset) return 0;
+    const t = (h - sunrise) / (sunset - sunrise); // 0..1
+    let base = Math.sin(Math.PI * t) * PV_CAPACITY; // peak at midday
+    // cloud noise & random transient dips
+    base *= 0.6 + 0.4*Math.exp(-Math.abs(t-0.5)*6); // shaping
+    base *= (0.85 + (Math.random()-0.5)*0.15); // small noise
+    // occasional cloud dip
+    if(Math.random() < 0.02) base *= (0.3 + Math.random()*0.6);
+    return Math.max(0, base);
   }
 
-  // small sample tariff getter (replace with your live API)
-  async function getCurrentTariff(){
-    // realistic default: 0.15 $/kWh for grid; you can adapt using time-of-use table
-    return 0.15;
+  // Grid tariff $ per kWh (simple TOU)
+  function tariffNow() {
+    const h = new Date().getHours();
+    if(h >= 0 && h < 6) return 0.08;
+    if(h >=6 && h < 10) return 0.20;
+    if(h >=10 && h < 16) return 0.12;
+    if(h >=16 && h < 21) return 0.25;
+    return 0.10;
   }
 
-  // tiny PV short-term forecast stub (in production replace with PV forecast)
-  async function getShortTermPVForecast(){
-    // return normalized expected PV power (0..1)
-    return 0.6;
+  // Hospital oxygen demand (L/min) simplified profile
+  function demandNow() {
+    const base = 20 + Math.sin(new Date().getHours()/24*2*Math.PI)*3; // baseline
+    const noise = (Math.random()-0.5)*2;
+    // occasional spike events
+    const spike = Math.random() < 0.02 ? 20 + Math.random()*80 : 0;
+    return Math.max(0, base + noise + spike);
   }
 
-  // quick sample dataset for demo/training (synthetic)
-  function sampleTrainingBatch(n=1000){
-    const X = [];
-    const Y = [];
-    for(let i=0;i<n;i++){
-      const current = 80 + Math.random()*80; // 80-160A
-      const grid_ratio = Math.random();
-      const pv = Math.random()*200; // kW
-      const water = 30 + Math.random()*80;
-      // Faraday-based O2 rate approx: liters per second per amp scale (demo)
-      const o2_rate = current * 0.00021 * (0.8 + 0.4*Math.random()); // match your matlab scaling
-      const eff = 0.8 + 0.15*Math.random();
-      const purity = 99.5 - 0.1*Math.random();
-      X.push([current, grid_ratio, 1-grid_ratio, water, 0.15, pv]);
-      Y.push([o2_rate, eff, purity, 60 + Math.random()*10]);
+  // Provide short PV forecast array (next N steps, step = minutes)
+  function pvForecast(minutes=60, step=10) {
+    const out = [];
+    const now = new Date();
+    for(let t=0;t<minutes;t+=step){
+      const future = new Date(now.getTime() + t*60000);
+      const h = future.getHours() + future.getMinutes()/60;
+      // use same shape
+      const sunrise=6, sunset=18;
+      if(h < sunrise || h > sunset) out.push(0);
+      else {
+        const tt = (h - sunrise)/(sunset-sunrise);
+        let b = Math.sin(Math.PI*tt)*PV_CAPACITY;
+        b *= 0.6 + 0.4*Math.exp(-Math.abs(tt-0.5)*6);
+        // small forecast uncertainty
+        b *= (0.9 + (Math.random()-0.5)*0.2);
+        out.push(Math.max(0, b));
+      }
     }
-    return {X,Y};
+    return out;
   }
 
-  return { fetchNasaPowerDaily, getCurrentTariff, getShortTermPVForecast, sampleTrainingBatch };
+  return { pvNow, tariffNow, demandNow, pvForecast, PV_CAPACITY };
 })();
