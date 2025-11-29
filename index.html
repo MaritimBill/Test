@@ -1,79 +1,55 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PEM Electrolyzer — Web HE-NMPC</title>
-  <link rel="stylesheet" href="styles.css" />
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PEM Electrolyzer Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="header">
-    <h1>🏭 PEM Electrolyzer — Web HE-NMPC</h1>
-    <div id="statusBar">
-      <span id="mqttStatus">MQTT: ⏳</span>
-      <span id="modelStatus">ANNs: ready</span>
-      <span id="waterStatus">Water: -- L</span>
+    <h1>PEM Electrolyzer Dashboard</h1>
+
+    <div id="controls">
+        <h2>Controls & Commands</h2>
+        <label>Mode:
+            <select id="mode">
+                <option value="auto">AUTO</option>
+                <option value="manual">Manual</option>
+            </select>
+        </label>
+        <label>Manual Current (A):
+            <input type="number" id="manual-current" value="150" min="0">
+        </label>
+        <button id="apply-current">Apply</button>
+        <button id="request-mpc">Request MPC now</button>
+        <button id="compute-mpc">Compute MPC</button>
+        <button id="refill-water">Refill Water</button>
     </div>
-  </header>
 
-  <main class="container">
-    <section class="controls card">
-      <h2>Controls & Commands</h2>
+    <div id="metrics">
+        <h2>MPC Metrics & System Status</h2>
+        <p>Applied Current: <span id="applied-current">--</span> A</p>
+        <p>Grid Ratio: <span id="grid-ratio">--</span> %</p>
+        <p>PV Ratio: <span id="pv-ratio">--</span> %</p>
+        <p>Water Tank: <span id="water-tank">--</span> L</p>
+        <p>O₂ Rate: <span id="o2-rate">--</span> L/h</p>
+        <p>Last MPC cost: <span id="mpc-cost">--</span></p>
+    </div>
 
-      <div class="row">
-        <label>Mode</label>
-        <select id="modeSelect">
-          <option value="auto">AUTO</option>
-          <option value="manual">MANUAL</option>
-          <option value="mpc">MPC</option>
-          <option value="economic">HE-NMPC</option>
-        </select>
-      </div>
+    <div id="charts">
+        <canvas id="currentChart"></canvas>
+        <canvas id="waterChart"></canvas>
+    </div>
 
-      <div class="row">
-        <label>Manual Current (A)</label>
-        <input id="manualCurrent" type="number" min="50" max="200" value="150" />
-        <button id="applyManual">Apply</button>
-      </div>
+    <!-- Load libraries first -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-      <div class="row">
-        <label>Request MPC now</label>
-        <button id="requestMPC">Compute MPC</button>
-        <button id="refillWater">Refill Water</button>
-      </div>
-
-      <h3>MPC Metrics</h3>
-      <canvas id="mpcCostChart" height="120"></canvas>
-    </section>
-
-    <section class="status card">
-      <h2>System Status</h2>
-      <div class="statusGrid">
-        <div>Applied Current: <b id="appliedCurrent">-- A</b></div>
-        <div>Grid Ratio: <b id="gridRatio">-- %</b></div>
-        <div>PV Ratio: <b id="pvRatio">-- %</b></div>
-        <div>Water Tank: <b id="waterTank">-- L</b></div>
-        <div>O₂ Rate: <b id="o2Rate">-- L/h</b></div>
-        <div>Last MPC cost: <b id="lastCost">--</b></div>
-      </div>
-
-      <h3>Water level (real time)</h3>
-      <progress id="waterBar" value="0" max="100"></progress>
-
-      <h3>Performance (simulated)</h3>
-      <canvas id="perfChart" height="160"></canvas>
-    </section>
-
-    <section class="log card">
-      <h2>Event Log</h2>
-      <textarea id="log" readonly></textarea>
-    </section>
-  </main>
-
-  <!-- scripts -->
-  <script src="kenya-data.js"></script>
-  <script src="henmpc-controller.js"></script>
-  <script src="mpc-controller.js"></script>
-  <script src="app.js"></script>
+    <!-- Your web app code -->
+    <script src="kenya-data.js"></script>
+    <script src="mpc-controller.js"></script>
+    <script src="henmpc-controller.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
