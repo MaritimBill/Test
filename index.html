@@ -3,28 +3,23 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PEM Electrolyzer — Web MPC & ANN</title>
+  <title>PEM Electrolyzer — Web HE-NMPC</title>
   <link rel="stylesheet" href="styles.css" />
-  <!-- TensorFlow.js -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.7.0/dist/tf.min.js"></script>
-  <!-- MQTT.js (browser build) -->
-  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-  <!-- Chart.js for plots -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <header class="header">
-    <h1>🏭 PEM Electrolyzer — Web MPC</h1>
+    <h1>🏭 PEM Electrolyzer — Web HE-NMPC</h1>
     <div id="statusBar">
       <span id="mqttStatus">MQTT: ⏳</span>
-      <span id="modelStatus">Models: ⏳</span>
+      <span id="modelStatus">ANNs: ready</span>
       <span id="waterStatus">Water: -- L</span>
     </div>
   </header>
 
   <main class="container">
     <section class="controls card">
-      <h2>Controls</h2>
+      <h2>Controls & Commands</h2>
+
       <div class="row">
         <label>Mode</label>
         <select id="modeSelect">
@@ -42,12 +37,12 @@
       </div>
 
       <div class="row">
-        <label>Request MPC decision</label>
+        <label>Request MPC now</label>
         <button id="requestMPC">Compute MPC</button>
-        <button id="refillWater">Refill Water (web)</button>
+        <button id="refillWater">Refill Water</button>
       </div>
 
-      <h3>Recent MPC metrics</h3>
+      <h3>MPC Metrics</h3>
       <canvas id="mpcCostChart" height="120"></canvas>
     </section>
 
@@ -59,12 +54,13 @@
         <div>PV Ratio: <b id="pvRatio">-- %</b></div>
         <div>Water Tank: <b id="waterTank">-- L</b></div>
         <div>O₂ Rate: <b id="o2Rate">-- L/h</b></div>
+        <div>Last MPC cost: <b id="lastCost">--</b></div>
       </div>
 
       <h3>Water level (real time)</h3>
       <progress id="waterBar" value="0" max="100"></progress>
 
-      <h3>Performance Metrics</h3>
+      <h3>Performance (simulated)</h3>
       <canvas id="perfChart" height="160"></canvas>
     </section>
 
@@ -74,7 +70,7 @@
     </section>
   </main>
 
-  <!-- app scripts -->
+  <!-- scripts -->
   <script src="kenya-data.js"></script>
   <script src="henmpc-controller.js"></script>
   <script src="mpc-controller.js"></script>
